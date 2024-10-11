@@ -1,0 +1,46 @@
+---
+title: "HW 3"
+author: "Carolyn Martinez"
+date: "2024-10-10"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r loading libraries, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+
+## Problem 1: NY NOAA Data 
+
+```{r loading and claening data}
+
+library(p8105.datasets)
+data("ny_noaa")
+```
+
+The data has observations on `r nrow(ny_noaa)` individual GHCND-Daily weather stations. The data set has `r ncol(ny_noaa)` variables some of which include the station ID, the date of the observation, the precipitation in tenths of a mm, the snowfall in mm, the snow depth in mm, and the max and temperature in degrees Celsius. Missing data is a big issue considering there are `r sum(is.na(ny_noaa))` missing data in the set. 
+
+```{r this is separating date & changing units}
+
+ny_noaa |>
+   na.omit()|>
+separate(date, into = c("year", "month", "day"), sep="-", extra = "merge", fill = "right")|>
+   mutate(
+      prcp = round(as.numeric(prcp, digits =0)),
+      tmin = as.numeric(tmin)/10,
+      tmax = as.numeric(tmax)/10,
+      snow = as.numeric(snow)
+      )|>
+   tabulate(unique(snow))|>
+   which.max()
+   
+```
+
+
+
+
+
+

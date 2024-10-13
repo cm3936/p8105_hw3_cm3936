@@ -7,10 +7,28 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r loading libraries, include=FALSE}
+```{r loading libraries and adding ggplot settings, include=FALSE}
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
+library(patchwork)
+library(ggridges)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
 ```
 
 ## Problem 1: NY NOAA Data 
@@ -25,19 +43,89 @@ The data has observations on `r nrow(ny_noaa)` individual GHCND-Daily weather st
 
 ```{r this is separating date & changing units}
 
-ny_noaa |>
-   na.omit()|>
+ny_noaa_clean = 
+   ny_noaa |>
 separate(date, into = c("year", "month", "day"), sep="-", extra = "merge", fill = "right")|>
    mutate(
       prcp = round(as.numeric(prcp, digits =0)),
       tmin = as.numeric(tmin)/10,
       tmax = as.numeric(tmax)/10,
-      snow = as.numeric(snow)
-      )|>
-   tabulate(unique(snow))|>
-   which.max()
-   
+      snow = as.numeric(snow),
+      year = as.factor(year),
+      month = as.numeric(month),
+      day = as.numeric(day))
 ```
+
+```{r the common snow value}
+   ny_noaa_clean|>
+  group_by(snow) |> summarize(count = n(), na.rm=TRUE) |> arrange(desc(count)) 
+```
+The most common observed value for snow is `r head(count, n=1)` mm. This could be due to many reasons, including because the half of the stations report precipitation only and the record length of the stations are not consistent which might result in some winter months being excluded. 
+
+```{r Jan and July plot}
+t_max_july =
+   ny_noaa_clean |> 
+   filter(month==07) |>  
+   group_by(id, year)|>
+   summarize(mean_tmax = mean(tmax, na.rm=TRUE))|>
+   ggplot(aes(x= year, y= mean_tmax, color=id))  +
+                   geom_point() + 
+                  geom_line() +
+            labs(
+               title= "Average Max Temperature in July", 
+               x= "Year", 
+               y= "Average Max Temperature (Celsius)") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")
+                
+t_max_jan =
+    ny_noaa_clean |> 
+   filter(month==01) |>  
+   group_by(id, year)|>
+   summarize(mean_tmax = mean(tmax, na.rm=TRUE))|>
+   ggplot(aes(x= year, y= mean_tmax, color=id))  +
+                   geom_point() + 
+                  geom_line() +
+            labs(
+               title= "Average Max Temperature in January", 
+               x= "Year", 
+               y= "Average Max Temperature (Celsius)") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")
+t_max_july + t_max_jan
+```
+The structure of the data is tidy but not for a lay audience. This is noticeable based on the dense overlay of stations. In July there is one clear outlier in the 1988 and another in January in 1982. The structure of the data is somewhat interpretable, it might be best to group by the location of the station as opposed to the station ID to clean up the aesthetics. 
+
+```{r tmax v tmin & Distrobution}
+tmaxvtmin_plot =
+    ny_noaa_clean |> 
+   group_by(id) |>
+   ggplot(aes(x= tmax, y=tmin, color=id)) +
+                  geom_hex() +
+            labs(
+               title= "Max Temperature", 
+               x= "Max Temperature (Celsius)", 
+               y= "Min Temperature (Celsius)") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")
+
+
+```
+
+```{r distribution}
+
+snow_plot =
+    ny_noaa_clean |> 
+   filter(snow > 0 & snow < 100) |>
+ggplot(aes(x = snow, y = year, fill = year)) + 
+  geom_density_ridges(scale=0.85, color = "black") +
+   labs(
+      title = "Snowfall Distribution",
+      x = "Snowfall",
+      y = "Frequency")+
+      theme_minimal()
+
+snow_plot + tmaxvtmin_plot
+```
+
+##Problem 2
 
 
 

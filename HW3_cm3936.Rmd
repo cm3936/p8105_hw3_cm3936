@@ -15,6 +15,7 @@ library(patchwork)
 library(ggridges)
 library(p8105.datasets)
 library(readr)
+library(knitr)
 
 knitr::opts_chunk$set(
   fig.width = 6,
@@ -96,7 +97,7 @@ t_max_july + t_max_jan
 ```
 The structure of the data is tidy but not for a lay audience. This is noticeable based on the dense overlay of stations. In July there is one clear outlier in the 1988 and another in January in 1982. The structure of the data is somewhat interpretable, it might be best to group by the location of the station as opposed to the station ID to clean up the aesthetics. 
 
-```{r tmax v tmin & Distrobution}
+```{r tmax v tmin & Distribution}
 tmaxvtmin_plot =
     ny_noaa_clean |> 
    group_by(id) |>
@@ -226,9 +227,166 @@ daily_plots
 ```
 Based on the created plots, most people have higher levels of activity in the middle minutes of the day which makes sense becasue the early minutes are midnight and beyond. There are no major differences between education groups and for most except, the group with less than a high school level of education, females have higher levels of activity throughout the day. 
    
+   
+## Problem 3: Citi Bikes
+```{r importing the data}
+citibikes_jan2020 = read_csv("./citibike/Jan 2020 Citi.csv",
+                       na = c(".", "NA", ""),
+col_types=cols(
+      `ride_id` = col_character(),
+      `rideable_type` = col_character(),
+      `weekdays`= col_character(),
+      `duration`=col_factor(),
+      `start_station_name`=col_character(),
+       `end_station_name`=col_character(),
+      `member_casual`=col_character()
+      ))|>
+   janitor::clean_names()|>
+   mutate(
+      year="2020",
+      month="January")
+
+citibikes_july2020 = read_csv("./citibike/July 2020 Citi.csv",
+                       na = c(".", "NA", ""),
+col_types=cols(
+      `ride_id` = col_character(),
+      `rideable_type` = col_character(),
+      `weekdays`= col_character(),
+      `duration`=col_factor(),
+      `start_station_name`=col_character(),
+       `end_station_name`=col_character(),
+      `member_casual`=col_character()
+      ))|>
+   janitor::clean_names()|>
+   mutate(
+      year="2020",
+      month="July")
 
 
+citibikes_jan2024 = read_csv("./citibike/Jan 2024 Citi.csv",
+                       na = c(".", "NA", ""),
+col_types=cols(
+      `ride_id` = col_character(),
+      `rideable_type` = col_character(),
+      `weekdays`= col_character(),
+      `duration`=col_factor(),
+      `start_station_name`=col_character(),
+       `end_station_name`=col_character(),
+      `member_casual`=col_character()
+      ))|>
+   janitor::clean_names()|>
+   mutate(
+      year="2024",
+      month="January")
+
+citibikes_july_2024 = read_csv("./citibike/July 2024 Citi.csv",
+                       na = c(".", "NA", ""),
+col_types=cols(
+      `ride_id` = col_character(),
+      `rideable_type` = col_character(),
+      `weekdays`= col_character(),
+      `duration`=col_factor(),
+      `start_station_name`=col_character(),
+       `end_station_name`=col_character(),
+      `member_casual`=col_character()
+      ))|>
+   janitor::clean_names()|>
+   mutate(
+      year="2024",
+      month="July")
+
+citibike_all=
+   bind_rows(citibikes_jan2020, citibikes_jan2024, citibikes_july_2024,citibikes_july2020 )
+```
+Total Rides by Membership 
+
+```{r readerfriendly table}
+citibike_all |>
+   drop_na(member_casual)|>
+  group_by(member_casual, year, month) |>
+  summarize(count = n())|>
+   pivot_wider(
+       names_from = member_casual,
+       values_from = count)  |>
+   knitr::kable(caption= "Total Cases by Membership and Year and Month Combination")
+```
+Based on the above table, we can see that in 2020 most of the rides were from members. However, in 2024, there was a higher proportion of casual riders but most of the riders were members. 
+
+```{r most popular stations July 2024}
+
+citibike_all |>
+   drop_na(start_station_name)|>
+   filter(
+      month=="July" & year=="2024")|>
+  group_by(start_station_name) |>
+  summarize(count = n())|>
+   arrange(desc(count)) |>  
+  slice_head(n = 5) |>     
+   pivot_wider(
+      names_from = "start_station_name",
+      values_from = "count")  |>
+   knitr::kable(caption= "Most Popular Starting Station in July 2024")
+```
+
+```{r impact of week day, month and year on median ride duration}
+median_durationplot_month =
+   citibike_all |>
+   group_by(year, month, weekdays) |>
+ summarize(median_duration=median(as.numeric(duration),.groups="drop"))|>
+   ggplot(aes(x = month, y = median_duration)) +
+   geom_bar(stat = "identity", position = "dodge") +
+    labs(
+       title = "Impact of Month on Median Duration",
+        x = "Month",
+        y = "Median Duration")+
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 
+median_durationplot_day =
+   citibike_all |>
+   group_by(year, month, weekdays) |>
+ summarize(median_duration=median(as.numeric(duration),.groups="drop"))|>
+   ggplot(aes(x = weekdays, y = median_duration)) +
+   geom_bar(stat = "identity", position = "dodge") +
+    labs(
+       title = "Impact of Day of the Week on Median Duration",
+        x = "Weekday",
+        y = "Median Duration")+
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+median_durationplot_year =
+   citibike_all |>
+   group_by(year, month, weekdays) |>
+ summarize(median_duration=median(as.numeric(duration),.groups="drop"))|>
+   ggplot(aes(x = year, y = median_duration)) +
+   geom_bar(stat = "identity", position = "dodge") +
+    labs(
+       title = "Impact of Month on Median Duration",
+        x = "Year",
+        y = "Median Duration")+
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+median_durationplot_month + median_durationplot_day + median_durationplot_year
+
+```
+
+Based on this figure, it seems the Month and the years have the largest impact on the median ride duration. The median ride duration in September is `{r summarize(median(duration, month="January"))}` and in July it is `{r summarize(median(duration, month="July"))}` The median ride duration was higher in 2020 than in 2024.The median ride duration in 2020 was `{r summarize(median(duration, year="2020"))}` and in 2024 it was {r summarize(median(duration, year ="2024"))}`. The yearly difference might be explained by the COVID-19 pandemic where people preferred bikes over public transportation. The differences between the two months may be explained by weather and users preferring to ride bikes in the summer instead of the winter. 
+
+```{r distribution of ride duration by month, membership, bike type}
+duration_distribution =
+    citibike_all |> 
+   filter(year=="2024")|>
+ggplot(aes(x = month, y = duration, fill = rideable_type)) + 
+  geom_boxplot() +
+   labs(
+      title = "Duration Distribution by Month",
+      x = "Month",
+      y = "Ride Duration (seconds)")+
+      theme_minimal()+
+   facet_wrap(~ member_casual)
+```
+
+Comment on your results.
 
 

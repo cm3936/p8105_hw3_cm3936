@@ -13,6 +13,8 @@ library(ggplot2)
 library(dplyr)
 library(patchwork)
 library(ggridges)
+library(p8105.datasets)
+library(readr)
 
 knitr::opts_chunk$set(
   fig.width = 6,
@@ -119,13 +121,109 @@ ggplot(aes(x = snow, y = year, fill = year)) +
    labs(
       title = "Snowfall Distribution",
       x = "Snowfall",
-      y = "Frequency")+
+      y = "Year")+
       theme_minimal()
 
 snow_plot + tmaxvtmin_plot
 ```
 
-##Problem 2
+## Problem 2:Accelerometers 
+```{r loading nhanes data}
+nhanes_demo = read_csv("./nhanes_covar.csv", 
+                       skip=4, 
+                       na = c(".", "NA", ""),
+col_types=cols(
+      `SEQN` = col_character(),
+      `sex` = col_character(),
+      `age`= col_number(),
+      `BMI`=col_factor(),
+      `education`=col_character()
+      
+      ))|>
+   
+   janitor::clean_names()
+   
+nhanes_acce=read_csv("./nhanes_accel.csv", na = c(".", "NA", ""),
+col_types=cols(
+      `SEQN` = col_character()))|>
+   janitor::clean_names()
+
+full_nhanes = left_join(nhanes_acce, nhanes_demo, by = "seqn") |>
+   drop_na(seqn, sex, age, bmi, education) |>
+   filter( age > 21)|>
+   mutate(
+      sex=recode(sex, '1' = "Male", '2' = "Female"),
+      education = recode(education, '1' = "LessHS", '2' = "HS", '3' = "HSMore")
+   )
+
+```
+
+```{r tables}
+full_nhanes |>
+   drop_na(education)|>
+  group_by(education, sex) |>
+  summarize(count = n())|>
+   pivot_wider(
+       names_from = sex,
+       values_from = count)  |>
+   knitr::kable(caption= "Number of Men and Women per Education Category")
+```
+
+```{r distribution plot}
+menvwomen_plot=
+full_nhanes |>
+  drop_na(education)|>
+  group_by(education, sex) |>
+ggplot(aes(x = age, y = education, fill =sex)) + 
+  geom_density_ridges(alpha=.5, scale=0.85, color = "blue") +
+   labs(
+      title = "Age Distributions of Men and Women by Education Levels",
+      x = "Age",
+      y = "Education Level")
+
+```
+For participants with an education level of less than high school, there is a slightly bimodal age distribution for men, and a unimodal one for females that is left-skewed. For participants with an education level higher than high school, there is a prominent right-skewed age distribution for females and a slightly bimodal age distribution for males. For participants with a high school equivalent level of education, there is a left-skewed age distribution for females and a slightly bimodal age distribution for men. 
+
+```{r activity plot}
+activity_plots=
+   full_nhanes |>
+  mutate(
+     total_activity = as.numeric(rowSums(pick(min1:min1440), na.rm = TRUE)))|>
+   ggplot(aes(x = age, y = total_activity))+
+   geom_point(aes(color=sex), alpha=.5)+
+   geom_smooth(aes(color=sex),se=FALSE)+
+   labs(
+      title = "Activity Levels Across Age for Males and Females by Education Level",
+      x = "Age",
+      y = "Total Activity")+
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+   facet_wrap(~education)
+```
+     
+This plot demonstrates higher levels of activity in younger females with a high school level education compared to males. Additionally, for individuals with high school level of education and higher, females generally had higher levels of activity. The group where this pattern diverges is for those with less than high school level of education. 
+
+```{r daily activity}
+daily_plots =
+   full_nhanes |>
+   
+   pivot_longer(cols = starts_with("min"),  
+                 names_to = "minute", 
+                 values_to = "activity") |>
+   
+    mutate(minute = as.numeric(sub("min", "", minute)))|>
+   
+   ggplot(aes(x = minute, y = activity, color=sex))+
+   geom_smooth(aes(color=sex), alpha=.3)+
+   labs(
+      title = "24-Hour Activity Time Courses by Education Level and Sex",
+      x = "Minute of the Day",
+      y = "Total Activity")+
+   facet_wrap(~education)+
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+Based on the created plots, most people have higher levels of activity in the middle minutes of the day which makes sense becasue the early minutes are midnight and beyond. There are no major differences between education groups and for most except, the group with less than a high school level of education, females have higher levels of activity throughout the day. 
+
 
 
 

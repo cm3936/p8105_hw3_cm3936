@@ -221,6 +221,8 @@ daily_plots =
    facet_wrap(~education)+
    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
+daily_plots
+
 ```
 Based on the created plots, most people have higher levels of activity in the middle minutes of the day which makes sense becasue the early minutes are midnight and beyond. There are no major differences between education groups and for most except, the group with less than a high school level of education, females have higher levels of activity throughout the day. 
 

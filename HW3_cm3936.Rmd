@@ -60,10 +60,13 @@ separate(date, into = c("year", "month", "day"), sep="-", extra = "merge", fill 
 ```
 
 ```{r the common snow value}
+   most_common_snow=
    ny_noaa_clean|>
   group_by(snow) |> summarize(count = n(), na.rm=TRUE) |> arrange(desc(count)) 
+
 ```
-The most common observed value for snow is `r head(count, n=1)` mm. This could be due to many reasons, including because the half of the stations report precipitation only and the record length of the stations are not consistent which might result in some winter months being excluded. 
+
+The most common observed value for snow is 0 mm. This could be due to many reasons, including because the half of the stations report precipitation only and the record length of the stations are not consistent which might result in some winter months being excluded. 
 
 ```{r Jan and July plot}
 t_max_july =
@@ -104,7 +107,7 @@ tmaxvtmin_plot =
    ggplot(aes(x= tmax, y=tmin, color=id)) +
                   geom_hex() +
             labs(
-               title= "Max Temperature", 
+               title= "Max vs. Min Temperature", 
                x= "Max Temperature (Celsius)", 
                y= "Min Temperature (Celsius)") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")
@@ -117,7 +120,7 @@ tmaxvtmin_plot =
 snow_plot =
     ny_noaa_clean |> 
    filter(snow > 0 & snow < 100) |>
-ggplot(aes(x = snow, y = year, fill = year)) + 
+ggplot(aes(x = snow, y = year)) + 
   geom_density_ridges(scale=0.85, color = "black") +
    labs(
       title = "Snowfall Distribution",
@@ -182,7 +185,10 @@ ggplot(aes(x = age, y = education, fill =sex)) +
       x = "Age",
       y = "Education Level")
 
+menvwomen_plot
+
 ```
+
 For participants with an education level of less than high school, there is a slightly bimodal age distribution for men, and a unimodal one for females that is left-skewed. For participants with an education level higher than high school, there is a prominent right-skewed age distribution for females and a slightly bimodal age distribution for males. For participants with a high school equivalent level of education, there is a left-skewed age distribution for females and a slightly bimodal age distribution for men. 
 
 ```{r activity plot}
@@ -196,9 +202,11 @@ activity_plots=
    labs(
       title = "Activity Levels Across Age for Males and Females by Education Level",
       x = "Age",
-      y = "Total Activity")+
+      y = "Total Activity (MMS)")+
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
    facet_wrap(~education)
+
+activity_plots
 ```
      
 This plot demonstrates higher levels of activity in younger females with a high school level education compared to males. Additionally, for individuals with high school level of education and higher, females generally had higher levels of activity. The group where this pattern diverges is for those with less than high school level of education. 
@@ -225,38 +233,21 @@ daily_plots =
 daily_plots
 
 ```
+
 Based on the created plots, most people have higher levels of activity in the middle minutes of the day which makes sense becasue the early minutes are midnight and beyond. There are no major differences between education groups and for most except, the group with less than a high school level of education, females have higher levels of activity throughout the day. 
    
    
 ## Problem 3: Citi Bikes
 ```{r importing the data}
 citibikes_jan2020 = read_csv("./citibike/Jan 2020 Citi.csv",
-                       na = c(".", "NA", ""),
-col_types=cols(
-      `ride_id` = col_character(),
-      `rideable_type` = col_character(),
-      `weekdays`= col_character(),
-      `duration`=col_factor(),
-      `start_station_name`=col_character(),
-       `end_station_name`=col_character(),
-      `member_casual`=col_character()
-      ))|>
+                       na = c(".", "NA", ""))|>
    janitor::clean_names()|>
    mutate(
       year="2020",
       month="January")
 
 citibikes_july2020 = read_csv("./citibike/July 2020 Citi.csv",
-                       na = c(".", "NA", ""),
-col_types=cols(
-      `ride_id` = col_character(),
-      `rideable_type` = col_character(),
-      `weekdays`= col_character(),
-      `duration`=col_factor(),
-      `start_station_name`=col_character(),
-       `end_station_name`=col_character(),
-      `member_casual`=col_character()
-      ))|>
+                       na = c(".", "NA", ""))|>
    janitor::clean_names()|>
    mutate(
       year="2020",
@@ -264,40 +255,23 @@ col_types=cols(
 
 
 citibikes_jan2024 = read_csv("./citibike/Jan 2024 Citi.csv",
-                       na = c(".", "NA", ""),
-col_types=cols(
-      `ride_id` = col_character(),
-      `rideable_type` = col_character(),
-      `weekdays`= col_character(),
-      `duration`=col_factor(),
-      `start_station_name`=col_character(),
-       `end_station_name`=col_character(),
-      `member_casual`=col_character()
-      ))|>
+                       na = c(".", "NA", ""))|>
    janitor::clean_names()|>
    mutate(
       year="2024",
       month="January")
 
 citibikes_july_2024 = read_csv("./citibike/July 2024 Citi.csv",
-                       na = c(".", "NA", ""),
-col_types=cols(
-      `ride_id` = col_character(),
-      `rideable_type` = col_character(),
-      `weekdays`= col_character(),
-      `duration`=col_factor(),
-      `start_station_name`=col_character(),
-       `end_station_name`=col_character(),
-      `member_casual`=col_character()
-      ))|>
+                       na = c(".", "NA", ""))|>
    janitor::clean_names()|>
    mutate(
       year="2024",
       month="July")
 
 citibike_all=
-   bind_rows(citibikes_jan2020, citibikes_jan2024, citibikes_july_2024,citibikes_july2020 )
+   bind_rows(citibikes_jan2020, citibikes_jan2024, citibikes_july_2024,citibikes_july2020)
 ```
+
 Total Rides by Membership 
 
 ```{r readerfriendly table}
@@ -310,6 +284,7 @@ citibike_all |>
        values_from = count)  |>
    knitr::kable(caption= "Total Cases by Membership and Year and Month Combination")
 ```
+
 Based on the above table, we can see that in 2020 most of the rides were from members. However, in 2024, there was a higher proportion of casual riders but most of the riders were members. 
 
 ```{r most popular stations July 2024}
@@ -322,9 +297,6 @@ citibike_all |>
   summarize(count = n())|>
    arrange(desc(count)) |>  
   slice_head(n = 5) |>     
-   pivot_wider(
-      names_from = "start_station_name",
-      values_from = "count")  |>
    knitr::kable(caption= "Most Popular Starting Station in July 2024")
 ```
 
@@ -371,22 +343,23 @@ median_durationplot_month + median_durationplot_day + median_durationplot_year
 
 ```
 
-Based on this figure, it seems the Month and the years have the largest impact on the median ride duration. The median ride duration in September is `{r summarize(median(duration, month="January"))}` and in July it is `{r summarize(median(duration, month="July"))}` The median ride duration was higher in 2020 than in 2024.The median ride duration in 2020 was `{r summarize(median(duration, year="2020"))}` and in 2024 it was {r summarize(median(duration, year ="2024"))}`. The yearly difference might be explained by the COVID-19 pandemic where people preferred bikes over public transportation. The differences between the two months may be explained by weather and users preferring to ride bikes in the summer instead of the winter. 
+Based on this figure, it seems the Month and the years have the largest impact on the median ride duration. The median ride duration in January was much lower than in July. The median ride duration was higher in 2020 than in 2024 but it was not a drastic visual difference. The yearly difference might be explained by the COVID-19 pandemic, where people preferred bikes over public transportation. The differences between the two months may be explained by weather and users preferring to ride bikes in the summer instead of the winter.
+
 
 ```{r distribution of ride duration by month, membership, bike type}
 duration_distribution =
     citibike_all |> 
-   filter(year=="2024")|>
+ filter(year== 2024)|>
 ggplot(aes(x = month, y = duration, fill = rideable_type)) + 
   geom_boxplot() +
+   facet_wrap(~ member_casual)+
    labs(
-      title = "Duration Distribution by Month",
+      title = "Ride Duration Distribution by Month in 2024",
       x = "Month",
-      y = "Ride Duration (seconds)")+
-      theme_minimal()+
-   facet_wrap(~ member_casual)
+      y = "Ride Duration") +
+      theme_minimal()
+
+duration_distribution
 ```
-
-Comment on your results.
-
+Based on this visualization, we can see that the distribution of ride duration among casual users that used a classic bike is larger than those that used electric bikes in both months. The distribution of ride duration among members is smaller with no visually significant differences between rides done on classic bikes as opposed to electric ones in both months. The larger duration distribution seen among casual users that used a classic bike makes sense because casual users a random sample of bikers with varying levels of biking speed. The smaller duration distribution closer to shorter rides among the members makes sense because this pool of rides might be from a sample pool that is biased toward regular bikers.  
 
